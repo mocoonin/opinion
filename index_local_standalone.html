@@ -1466,15 +1466,17 @@
                                         </h4>
                                         <div style="font-size: 0.95em; line-height: 1.6; color: #ddd;">
                                             ${currentLang === 'zh' ? 
-                                                '<p style="margin: 0 0 10px 0;"><strong>关于交易笔数有争议，目前工具只能查询到链上交易记录的笔数。</strong></p>' +
-                                                '<p style="margin: 0 0 10px 0;">🔴 <strong>强烈建议以官网里面的"已关闭订单"为准！</strong></p>' +
-                                                '<p style="margin: 0 0 10px 0;">如果你不记得你做了几笔，最好去登录查询。</p>' +
-                                                '<p style="margin: 0;">💡 <strong>建议：</strong>交易时记录下自己提交订单的次数，以便核对。</p>'
+                                                '<p style="margin: 0 0 10px 0;"><strong>有人说以下单笔数为准，有人说以链上tx记录为准，关于交易笔数有争议。</strong></p>' +
+                                                '<p style="margin: 0 0 10px 0;">本工具查询的是<strong>链上交易记录(tx)笔数</strong>，与官网"已关闭订单"可能不一致。</p>' +
+                                                '<p style="margin: 0 0 10px 0;">💡 <strong>建议：</strong>下单时多下几个单，多了没事，少了血亏。</p>' +
+                                                '<p style="margin: 0 0 10px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; font-size: 0.9em;">📝 <strong>开发者观点：</strong>从技术角度看，以tx记录为准更合理。如果下单100只成交50，这种部分成交的情况很难界定是否算有效订单。tx记录从技术实现上更友好、更明确。</p>' +
+                                                '<p style="margin: 0;">⚠️ 但为保险起见，<strong>建议在交易时记录自己提交的订单次数</strong>，多做几笔确保达标。</p>'
                                                 : 
-                                                '<p style="margin: 0 0 10px 0;"><strong>There is a dispute about trade count. This tool can only query on-chain transaction records.</strong></p>' +
-                                                '<p style="margin: 0 0 10px 0;">🔴 <strong>Strongly recommended to use "Closed Orders" on the official website as the standard!</strong></p>' +
-                                                '<p style="margin: 0 0 10px 0;">If you don\'t remember your trade count, please login to check.</p>' +
-                                                '<p style="margin: 0;">💡 <strong>Tip:</strong> Record your order submission count when trading for verification.</p>'
+                                                '<p style="margin: 0 0 10px 0;"><strong>There is a dispute: some say "order count", others say "on-chain tx records".</strong></p>' +
+                                                '<p style="margin: 0 0 10px 0;">This tool queries <strong>on-chain transaction (tx) records</strong>, which may differ from "Closed Orders" on the official website.</p>' +
+                                                '<p style="margin: 0 0 10px 0;">💡 <strong>Tip:</strong> Place more orders when trading - better safe than sorry.</p>' +
+                                                '<p style="margin: 0 0 10px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; font-size: 0.9em;">📝 <strong>Developer\'s View:</strong> From a technical perspective, tx records are more reasonable. If you place an order for 100 but only 50 gets filled, it\'s hard to define if this counts as a valid order. Tx records are more implementation-friendly and clearer.</p>' +
+                                                '<p style="margin: 0;">⚠️ To be safe, <strong>record your order submissions when trading</strong> and place extra orders to ensure qualification.</p>'
                                             }
                                         </div>
                                     </div>
