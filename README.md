@@ -1,4 +1,4 @@
-# Opinion 批量查询工具 - 本地独立版
+# Opinion 圣诞活动达标查询工具 - 本地独立版
 
 [English](#english-version) | [中文](#中文版本) | 联系作者：[Mocoonin](https://x.com/Mocoonin)
 
