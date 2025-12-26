@@ -996,37 +996,51 @@
                 throw new Error(currentLang === 'zh' ? '未配置 API Key' : 'API Key not configured');
             }
             
-            const url = `https://openapi.opinion.trade/openapi/v1/user/histories/v2`;
+            console.log('🔍 开始查询地址:', address);
+            console.log('🔑 使用 API Key:', apiKey.substring(0, 10) + '...');
+            
+            const url = `https://openapi.opinion.trade/openapi/trade/user/${address}`;
             let allTrades = [];
             let page = 1;
             const limit = 20;
             
             while (true) {
-                const response = await fetch(`${url}?address=${address}&page=${page}&limit=${limit}`, {
-                    headers: {
-                        'X-API-KEY': apiKey,
+                const fullUrl = `${url}?page=${page}&limit=${limit}`;
+                console.log('📡 请求:', fullUrl);
+                
+                const response = await fetch(fullUrl, {
+                    headers: { 
+                        'apikey': apiKey,
                         'accept': 'application/json'
                     }
                 });
 
+                console.log('← 响应状态:', response.status, response.statusText);
+
                 if (!response.ok) {
-                    if (response.status === 401) {
+                    if (response.status === 401 || response.status === 403) {
                         throw new Error(currentLang === 'zh' ? 'API Key 无效或已过期' : 'Invalid or expired API Key');
                     }
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
                 const data = await response.json();
-                if (data.errno !== 0) throw new Error(data.errmsg || (currentLang === 'zh' ? 'API错误' : 'API Error'));
+                console.log('✓ 获取数据:', data);
+                
+                if (data.errno !== 0) {
+                    throw new Error(data.errmsg || (currentLang === 'zh' ? 'API错误' : 'API Error'));
+                }
 
                 const trades = data.result?.list || [];
                 allTrades = allTrades.concat(trades);
+                console.log('✓ 本页获取交易记录:', trades.length, '条');
 
                 if (trades.length < limit || allTrades.length >= (data.result?.total || 0)) break;
                 page++;
                 if (page > 100) break;
             }
 
+            console.log('✅ 成功！总共获取', allTrades.length, '条交易记录');
             return allTrades;
         }
 
