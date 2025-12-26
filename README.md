@@ -1,6 +1,6 @@
 # Opinion 批量查询工具 - 本地独立版
 
-[English](#english-version) | [中文](#中文版本)
+[English](#english-version) | [中文](#中文版本) | 🔗 X（Twitter）：[Mocoonin](https://x.com/Mocoonin)
 
 ---
 
