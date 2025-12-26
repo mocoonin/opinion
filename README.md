@@ -7,6 +7,8 @@
 ## 中文版本
 
 ### 📋 简介
+<img width="3786" height="1936" alt="image" src="https://github.com/user-attachments/assets/dc035922-4cd3-481e-9afe-1f7cc1f1b755" />
+
 
 这是 Opinion.trade 假日活动数据查询工具的**纯前端本地版本**，无需安装Node.js或任何后端服务器，直接在浏览器中运行。
 
@@ -272,6 +274,8 @@ console.log(localStorage.getItem('opinion_addresses'));
 ## English Version
 
 ### 📋 Introduction
+<img width="3774" height="1938" alt="image" src="https://github.com/user-attachments/assets/6aefbe63-9af8-43b6-849e-48c731744001" />
+
 
 This is a **pure frontend standalone version** of the Opinion.trade Holiday Event data query tool. No Node.js or backend server required - runs directly in your browser.
 
