@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opinion 批量查询工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e27;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+
+        .header-left h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header-left p {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(40, 44, 66, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .icon-btn:hover {
+            background: rgba(50, 54, 76, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-btn {
+            width: 70px;
+            height: 50px;
+            padding: 0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            width: auto;
+            min-width: 140px;
+            padding: 0 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn svg {
+            flex-shrink: 0;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1e3a;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            border: 2px solid #333;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        .modal-body label {
+            display: block;
+            color: #aaa;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .modal-body input,
+        .modal-body textarea {
+            width: 100%;
+            padding: 12px;
+            background: #0a0e27;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .modal-body textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+
+        .modal-body input:focus,
+        .modal-body textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .char-count {
+            text-align: right;
+            color: #666;
+            font-size: 0.85em;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #ffa726;
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #ff9800;
+        }
+
+        .btn-secondary {
+            background: #333;
+            color: #aaa;
+        }
+
+        .btn-secondary:hover {
+            background: #444;
+        }
+
+        /* 表格样式 */
+        .results-table {
+            background: #1a1e3a;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #0a0e27;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #333;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #2a2e4a;
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: #222645;
+        }
+
+        tbody tr.expandable {
+            cursor: pointer;
+        }
+
+        td {
+            padding: 15px 12px;
+            font-size: 0.9em;
+        }
+
+        .address-cell {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        .expand-icon {
+            transition: transform 0.3s;
+            display: inline-block;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .detail-row {
+            display: none;
+            background: #0a0e27;
+        }
+
+        .detail-row.expanded {
+            display: table-row;
+        }
+
+        .detail-content {
+            padding: 20px;
+        }
+
+        .timeline-compact {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+        }
+
+        .day-mini {
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .day-mini.qualified {
+            background: #4caf50;
+            color: white;
+        }
+
+        .day-mini.partially-qualified {
+            background: #ffa726;
+            color: white;
+        }
+
+        .day-mini.not-qualified {
+            background: #f44336;
+            color: white;
+        }
+
+        .day-mini:hover {
+            transform: scale(1.2);
+            z-index: 10;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #000;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .day-mini:hover .tooltip {
+            opacity: 1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #333;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #3d1a1a;
+            border: 1px solid #ff4444;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #ff6b6b;
+        }
+
+        /* 悬浮按钮 - 修改为半圆形设计 */
+        .float-btn {
+            position: fixed;
+            right: 20px;
+            width: 40px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.4);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .float-btn.show {
+            display: flex;
+        }
+
+        .float-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 18px rgba(102, 126, 234, 0.6);
+        }
+
+        .float-btn:active {
+            cursor: pointer;
+        }
+
+        .expand-btn {
+            top: calc(50% - 25px);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .collapse-btn {
+            top: calc(50% + 5px);
+            border-radius: 0 0 20px 20px;
+        }
+
+        /* 醒目提示样式 */
+        .important-notice {
+            background: linear-gradient(135deg, rgba(255, 167, 38, 0.2) 0%, rgba(251, 140, 0, 0.2) 100%);
+            border: 2px solid #ffa726;
+            border-radius: 10px;
+            padding: 20px 30px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            animation: pulse 2s ease-in-out infinite;
+            min-height: 80px;
+        }
+
+        .important-notice-icon {
+            font-size: 36px;
+            flex-shrink: 0;
+        }
+
+        .important-notice-text {
+            color: #ffa726;
+            font-size: 1.4em;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(255, 167, 38, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(255, 167, 38, 0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 data-i18n="title">📊 Opinion 批量查询工具</h1>
+                <p data-i18n="subtitle">2025-12-22 至 2026-01-05 交易数据分析</p>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" onclick="window.open('https://x.com/Mocoonin', '_blank')" title="Twitter">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="openWalletModal()" title="钱包管理">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <path d="M2 10h20"/>
+                    </svg>
+                </button>
+                <button class="icon-btn lang-btn" onclick="toggleLanguage()" title="切换语言">
+                    <span id="langText" style="font-size: 14px; font-weight: 600;">中文</span>
+                </button>
+                <button class="icon-btn lang-btn" onclick="clearCache()" title="清除缓存">
+                    <span style="font-size: 13px; font-weight: 600;" data-i18n="clear_cache">清空缓存</span>
+                </button>
+                <button class="icon-btn refresh-btn" onclick="queryAddresses()" title="刷新数据">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                    <span style="margin-left: 8px;" data-i18n="refresh">刷新数据</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p data-i18n="loading">正在查询 <span id="progress">0/0</span>...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results-table" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th style="width: 60px;" data-i18n="th_no">序号</th>
+                        <th data-i18n="th_address">钱包地址</th>
+                        <th style="width: 120px;" data-i18n="th_remark">备注</th>
+                        <th style="width: 120px;" data-i18n="th_volume">总交易额</th>
+                        <th style="width: 100px;" data-i18n="th_qualified">达标天数</th>
+                        <th style="width: 180px;" data-i18n="th_status">达标状态</th>
+                        <th style="width: 120px;" data-i18n="th_detail">每日详情</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 钱包配置模态框 -->
+    <div id="walletModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                        <line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                    <span data-i18n="wallet_config">钱包配置</span>
+                </div>
+                <button class="modal-close" onclick="closeWalletModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- API Key 输入 -->
+                <label>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    <span data-i18n="api_key_label">API Key:</span>
+                </label>
+                <div style="font-size: 0.85em; color: #888; margin-bottom: 8px; line-height: 1.5;">
+                    <span data-i18n="api_key_hint">请输入您的 Opinion API Key（保存后加密存储在本地浏览器）</span>
+                </div>
+                <input 
+                    type="password" 
+                    id="modalApiKey" 
+                    placeholder="sk_xxxxxxxxxxxxxxxxxxxxxxxx"
+                    style="width: 100%; padding: 12px; background: #0f1a3a; border: 1px solid #2a2e4a; border-radius: 8px; color: #fff; font-size: 14px; margin-bottom: 20px; font-family: monospace;"
+                />
+                
+                <!-- 钱包地址输入 -->
+                <label>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                        <line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                    <span data-i18n="wallet_label">钱包地址 (每行一个):</span>
+                </label>
+                <div style="font-size: 0.85em; color: #888; margin-bottom: 8px; line-height: 1.5;">
+                    <span data-i18n="wallet_hint">请输入注册 Opinion 时使用的钱包地址用于查询数据,每行一个,地址和备注中间是空格。</span>
+                </div>
+                <div class="char-count">
+                    <span id="walletCount">0</span> / 100 <span data-i18n="max_wallets">个地址</span>
+                </div>
+                <textarea id="modalAddresses" placeholder="0x1234...&#10;0x5678... 钱包1&#10;0x9abc... 主钱包" oninput="updateWalletCount()"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeWalletModal()" data-i18n="cancel">取消</button>
+                <button class="btn btn-primary" onclick="saveWalletConfig()" data-i18n="save">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 悬浮展开/折叠按钮 -->
+    <button id="expandAllBtn" class="float-btn expand-btn" title="展开全部">
+        <span>▲</span>
+    </button>
+    <button id="collapseAllBtn" class="float-btn collapse-btn" title="折叠全部">
+        <span>▼</span>
+    </button>
+
+    <script>
+        // 配置
+        const API_BASE = 'https://openapi.opinion.trade/openapi';
+        const START_DATE = new Date('2025-12-22T00:00:00Z');
+        const END_DATE = new Date('2026-01-05T23:59:59Z');
+        const MIN_TRADES_PER_DAY = 4; // 修正为4次
+        const MIN_VOLUME_PER_DAY = 2000;
+        const MIN_QUALIFIED_DAYS = 10; // 修改为任意10天
+        const MIN_TOTAL_VOLUME = 2000;
+        const MAX_WALLETS = 100;
+
+        // 缓存配置
+        const CACHE_KEY = 'opinion_trade_cache';
+        const CACHE_VERSION = '1.0';
+
+        let allResults = [];
+        let allExpanded = false;
+        let currentLang = 'zh';
+
+        // 国际化文本
+        const i18n = {
+            zh: {
+                title: '📊 Opinion 批量查询工具',
+                subtitle: '2025-12-22 至 2026-01-05 交易数据分析',
+                refresh: '刷新数据',
+                loading: '正在查询',
+                th_no: '序号',
+                th_address: '钱包地址',
+                th_remark: '备注',
+                th_volume: '总交易额',
+                th_qualified: '达标天数',
+                th_status: '达标状态',
+                th_detail: '每日详情',
+                wallet_config: '钱包配置',
+                api_key_label: 'API Key:',
+                api_key_hint: '请输入您的 Opinion API Key（保存后加密存储在本地浏览器）',
+                wallet_label: '钱包地址 (每行一个):',
+                wallet_hint: '请输入注册 Opinion 时使用的钱包地址用于查询数据,每行一个,地址和备注中间是空格。',
+                max_wallets: '个地址',
+                cancel: '取消',
+                save: '保存',
+                view: '查看',
+                daily_warrior: '每日战士',
+                volume_king: '交易量王者',
+                qualified: '已达标',
+                not_qualified: '未达标',
+                no_more_chance: '⚠️ 剩余时间不足,无法达标',
+                already_qualified: '✓ 已完成达标要求',
+                need_more: '还差',
+                days: '天',
+                clear_cache: '清空缓存'
+            },
+            en: {
+                title: '📊 Opinion Batch Query Tool',
+                subtitle: 'Trading data analysis from 2025-12-22 to 2026-01-05',
+                refresh: 'Refresh',
+                loading: 'Querying',
+                th_no: 'No.',
+                th_address: 'Wallet Address',
+                th_remark: 'Remark',
+                th_volume: 'Total Volume',
+                th_qualified: 'Qualified Days',
+                th_status: 'Status',
+                th_detail: 'Details',
+                wallet_config: 'Wallet Config',
+                api_key_label: 'API Key:',
+                api_key_hint: 'Enter your Opinion API Key (securely stored locally in browser)',
+                wallet_label: 'Wallet Addresses (one per line):',
+                wallet_hint: 'Enter wallet addresses used to register Opinion for data query, one per line, address and note separated by space.',
+                max_wallets: 'addresses',
+                cancel: 'Cancel',
+                save: 'Save',
+                view: 'View',
+                daily_warrior: 'Daily Warrior',
+                volume_king: 'Volume King',
+                qualified: 'Qualified',
+                not_qualified: 'Not Qualified',
+                no_more_chance: '⚠️ Not enough time left',
+                already_qualified: '✓ Requirements met',
+                need_more: 'Need',
+                days: 'more days',
+                clear_cache: 'Clear Cache'
+            }
+        };
+
+        // 缓存管理函数
+        function getCacheData() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (!cached) return null;
+                
+                const data = JSON.parse(cached);
+                if (data.version !== CACHE_VERSION) {
+                    localStorage.removeItem(CACHE_KEY);
+                    return null;
+                }
+                
+                return data.records || {};
+            } catch (e) {
+                console.error('读取缓存失败:', e);
+                return null;
+            }
+        }
+
+        function saveCacheData(address, dailyStats) {
+            try {
+                const cache = getCacheData() || {};
+                
+                // 获取今天的日期（不含时间）
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStr = today.toISOString().split('T')[0];
+                
+                // 只缓存已达标的天数数据，且不包含今天
+                const qualifiedDays = {};
+                Object.keys(dailyStats).forEach(date => {
+                    // 排除今天，只缓存过去的已达标天数
+                    if (date !== todayStr && dailyStats[date].isQualified) {
+                        qualifiedDays[date] = dailyStats[date];
+                    }
+                });
+                
+                if (Object.keys(qualifiedDays).length > 0) {
+                    cache[address.toLowerCase()] = {
+                        qualifiedDays: qualifiedDays,
+                        lastUpdate: new Date().toISOString()
+                    };
+                    
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({
+                        version: CACHE_VERSION,
+                        records: cache
+                    }));
+                }
+            } catch (e) {
+                console.error('保存缓存失败:', e);
+            }
+        }
+
+        function getCachedQualifiedDays(address) {
+            const cache = getCacheData();
+            if (!cache) return null;
+            
+            const record = cache[address.toLowerCase()];
+            return record ? record.qualifiedDays : null;
+        }
+
+        function clearCache() {
+            if (confirm(currentLang === 'zh' ? '确定要清除所有缓存吗?' : 'Clear all cache?')) {
+                localStorage.removeItem(CACHE_KEY);
+                alert(currentLang === 'zh' ? '缓存已清除!' : 'Cache cleared!');
+            }
+        }
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            const hasApiKey = localStorage.getItem('opinion_api_key');
+            const hasConfig = localStorage.getItem('opinion_addresses');
+            
+            if (!hasApiKey || !hasConfig) {
+                openWalletModal();
+            } else {
+                queryAddresses();
+            }
+            initFloatButton();
+        });
+
+        // 国际化
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('langText').textContent = currentLang === 'zh' ? '中文' : 'EN';
+            updateI18n();
+            
+            // 重新渲染表格以更新展开详情中的文本
+            if (allResults.length > 0) {
+                displayResults();
+            }
+        }
+
+        function updateI18n() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[currentLang][key]) {
+                    el.textContent = i18n[currentLang][key];
+                }
+            });
+        }
+
+        // 钱包模态框
+        function openWalletModal() {
+            const savedAddresses = localStorage.getItem('opinion_addresses') || '';
+            const savedApiKey = localStorage.getItem('opinion_api_key') || '';
+            
+            document.getElementById('modalAddresses').value = savedAddresses;
+            document.getElementById('modalApiKey').value = savedApiKey;
+            updateWalletCount();
+            
+            document.getElementById('walletModal').classList.add('show');
+        }
+
+        function closeWalletModal() {
+            document.getElementById('walletModal').classList.remove('show');
+        }
+
+        function updateWalletCount() {
+            const text = document.getElementById('modalAddresses').value;
+            const lines = text.split('\n').filter(line => line.trim() && line.trim().startsWith('0x'));
+            document.getElementById('walletCount').textContent = lines.length;
+            
+            if (lines.length > MAX_WALLETS) {
+                document.getElementById('walletCount').style.color = '#ff4444';
+            } else {
+                document.getElementById('walletCount').style.color = '#4caf50';
+            }
+        }
+
+        function saveWalletConfig() {
+            const apiKey = document.getElementById('modalApiKey').value.trim();
+            const addresses = document.getElementById('modalAddresses').value.trim();
+            
+            if (!apiKey) {
+                alert(currentLang === 'zh' ? '请输入 API Key' : 'Please enter API Key');
+                return;
+            }
+            
+            if (!addresses) {
+                alert(currentLang === 'zh' ? '请输入至少一个钱包地址' : 'Please enter at least one wallet address');
+                return;
+            }
+            
+            const lines = addresses.split('\n').filter(line => line.trim() && line.trim().startsWith('0x'));
+            if (lines.length > MAX_WALLETS) {
+                alert(`${currentLang === 'zh' ? '最多只能添加' : 'Maximum'} ${MAX_WALLETS} ${currentLang === 'zh' ? '个地址' : 'addresses'}`);
+                return;
+            }
+            
+            localStorage.setItem('opinion_api_key', apiKey);
+            localStorage.setItem('opinion_addresses', addresses);
+            
+            closeWalletModal();
+            queryAddresses();
+        }
+
+        // 悬浮按钮
+        function initFloatButton() {
+            const expandBtn = document.getElementById('expandAllBtn');
+            const collapseBtn = document.getElementById('collapseAllBtn');
+
+            let isDragging = false;
+            let startX, startY;
+            let initialExpandTop, initialCollapseTop;
+            let hasMoved = false;
+
+            [expandBtn, collapseBtn].forEach(btn => {
+                btn.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    hasMoved = false;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    
+                    // 获取当前位置
+                    const expandRect = expandBtn.getBoundingClientRect();
+                    const collapseRect = collapseBtn.getBoundingClientRect();
+                    initialExpandTop = expandRect.top;
+                    initialCollapseTop = collapseRect.top;
+                    
+                    e.preventDefault();
+                });
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                // 判断是否真的移动了
+                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                    hasMoved = true;
+                }
+                
+                // 计算新位置
+                const newExpandTop = initialExpandTop + deltaY;
+                const newCollapseTop = initialCollapseTop + deltaY;
+                const newLeft = e.clientX - 19; // 减去按钮半径
+                
+                // 更新位置
+                expandBtn.style.left = newLeft + 'px';
+                expandBtn.style.top = newExpandTop + 'px';
+                expandBtn.style.right = 'auto';
+                
+                collapseBtn.style.left = newLeft + 'px';
+                collapseBtn.style.top = newCollapseTop + 'px';
+                collapseBtn.style.right = 'auto';
+            });
+
+            document.addEventListener('mouseup', (e) => {
+                if (!isDragging) return;
+                
+                // 如果没有移动,执行点击
+                if (!hasMoved) {
+                    if (e.target.closest('#expandAllBtn')) {
+                        collapseAll();  // ▲向上箭头 = 折叠
+                    } else if (e.target.closest('#collapseAllBtn')) {
+                        expandAll();    // ▼向下箭头 = 展开
+                    }
+                } else {
+                    // 拖动结束,吸附到左右
+                    const centerX = window.innerWidth / 2;
+                    const expandRect = expandBtn.getBoundingClientRect();
+                    const btnCenterX = expandRect.left + expandRect.width / 2;
+                    
+                    if (btnCenterX < centerX) {
+                        // 吸附到左边
+                        expandBtn.style.left = '20px';
+                        expandBtn.style.right = 'auto';
+                        collapseBtn.style.left = '20px';
+                        collapseBtn.style.right = 'auto';
+                    } else {
+                        // 吸附到右边
+                        expandBtn.style.right = '20px';
+                        expandBtn.style.left = 'auto';
+                        collapseBtn.style.right = '20px';
+                        collapseBtn.style.left = 'auto';
+                    }
+                }
+                
+                isDragging = false;
+            });
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.detail-row').forEach((row, index) => {
+                const iconEl = document.getElementById(`icon-${index + 1}`);
+                row.classList.add('expanded');
+                if (iconEl) iconEl.classList.add('expanded');
+            });
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.detail-row').forEach((row, index) => {
+                const iconEl = document.getElementById(`icon-${index + 1}`);
+                row.classList.remove('expanded');
+                if (iconEl) iconEl.classList.remove('expanded');
+            });
+        }
+
+        // API 调用 (省略,与之前相同)
+        function getDateRange() {
+            const dates = [];
+            // 使用 UTC 时间,避免时区问题
+            const start = new Date(Date.UTC(2025, 11, 22));  // 月份从0开始,11=12月
+            const end = new Date(Date.UTC(2026, 0, 5));      // 0=1月
+            
+            let current = new Date(start);
+            while (current <= end) {
+                dates.push(new Date(current));
+                current = new Date(current.getTime() + 24 * 60 * 60 * 1000);  // 加一天
+            }
+            return dates;
+        }
+
+        function formatDateFull(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function parseAddresses(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            const addresses = [];
+            for (const line of lines) {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length > 0 && parts[0].startsWith('0x')) {
+                    addresses.push({
+                        address: parts[0],
+                        remark: parts.slice(1).join(' ') || ''
+                    });
+                }
+            }
+            return addresses;
+        }
+
+        async function fetchUserTrades(address) {
+            // 本地版本：直接调用 Opinion API
+            const apiKey = localStorage.getItem('opinion_api_key');
+            if (!apiKey) {
+                throw new Error(currentLang === 'zh' ? '未配置 API Key' : 'API Key not configured');
+            }
+            
+            const url = `https://openapi.opinion.trade/openapi/v1/user/histories/v2`;
+            let allTrades = [];
+            let page = 1;
+            const limit = 20;
+            
+            while (true) {
+                const response = await fetch(`${url}?address=${address}&page=${page}&limit=${limit}`, {
+                    headers: {
+                        'X-API-KEY': apiKey,
+                        'accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error(currentLang === 'zh' ? 'API Key 无效或已过期' : 'Invalid or expired API Key');
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.errno !== 0) throw new Error(data.errmsg || (currentLang === 'zh' ? 'API错误' : 'API Error'));
+
+                const trades = data.result?.list || [];
+                allTrades = allTrades.concat(trades);
+
+                if (trades.length < limit || allTrades.length >= (data.result?.total || 0)) break;
+                page++;
+                if (page > 100) break;
+            }
+
+            return allTrades;
+        }
+
+        function filterTradesByDateRange(trades) {
+            return trades.filter(trade => {
+                const tradeTime = trade.createdAt * 1000;
+                return tradeTime >= START_DATE.getTime() && tradeTime <= END_DATE.getTime();
+            });
+        }
+
+        function groupTradesByDate(trades) {
+            const groups = {};
+            trades.forEach(trade => {
+                const dateStr = formatDateFull(new Date(trade.createdAt * 1000));
+                if (!groups[dateStr]) groups[dateStr] = [];
+                groups[dateStr].push(trade);
+            });
+            return groups;
+        }
+
+        function calculateDailyStats(trades) {
+            const tradeCount = trades.length;
+            let totalVolume = 0;
+            trades.forEach(trade => {
+                totalVolume += parseFloat(trade.amount || 0);
+            });
+
+            const isCountQualified = tradeCount >= MIN_TRADES_PER_DAY;
+            const isVolumeQualified = totalVolume >= MIN_VOLUME_PER_DAY;
+            const isQualified = isCountQualified && isVolumeQualified;
+            const isPartiallyQualified = !isQualified && (isCountQualified || isVolumeQualified);
+
+            return { 
+                tradeCount, 
+                totalVolume, 
+                isQualified,
+                isPartiallyQualified,
+                isCountQualified,
+                isVolumeQualified
+            };
+        }
+
+        async function analyzeAddress(addressInfo) {
+            const { address, remark } = addressInfo;
+
+            try {
+                // 获取缓存的已达标天数
+                const cachedQualifiedDays = getCachedQualifiedDays(address);
+                
+                // 获取今天的日期（不含时间）
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStr = today.toISOString().split('T')[0];
+                
+                const allTrades = await fetchUserTrades(address);
+                const trades = filterTradesByDateRange(allTrades);
+                const tradesByDate = groupTradesByDate(trades);
+                
+                const dates = getDateRange();
+                const dailyStats = {};
+                let totalVolume = 0;
+                let qualifiedDays = 0;
+                let partiallyQualifiedDays = 0;
+
+                // 先加载缓存的已达标天数（不包含今天）
+                if (cachedQualifiedDays) {
+                    Object.keys(cachedQualifiedDays).forEach(date => {
+                        // 只使用过去的缓存，今天的数据必须重新查询
+                        if (date !== todayStr) {
+                            dailyStats[date] = cachedQualifiedDays[date];
+                        }
+                    });
+                }
+
+                dates.forEach(date => {
+                    const dateStr = formatDateFull(date);
+                    
+                    // 如果已经有缓存且已达标（且不是今天），跳过计算
+                    if (dateStr !== todayStr && dailyStats[dateStr] && dailyStats[dateStr].isQualified) {
+                        totalVolume += dailyStats[dateStr].totalVolume;
+                        qualifiedDays++;
+                        if (dailyStats[dateStr].isPartiallyQualified) partiallyQualifiedDays++;
+                        return;
+                    }
+                    
+                    // 今天或未缓存的日期，重新计算
+                    const dayTrades = tradesByDate[dateStr] || [];
+                    const stats = calculateDailyStats(dayTrades);
+                    
+                    dailyStats[dateStr] = stats;
+                    totalVolume += stats.totalVolume;
+                    if (stats.isQualified) qualifiedDays++;
+                    if (stats.isPartiallyQualified) partiallyQualifiedDays++;
+                });
+
+                // 保存缓存（会自动排除今天）
+                saveCacheData(address, dailyStats);
+
+                const awards = {
+                    dailyWarriors: qualifiedDays >= MIN_QUALIFIED_DAYS,
+                    volumeKings: qualifiedDays >= MIN_QUALIFIED_DAYS
+                };
+
+                return {
+                    address,
+                    remark,
+                    dailyStats,
+                    summary: {
+                        totalVolume,
+                        qualifiedDays,
+                        partiallyQualifiedDays,
+                        totalDays: dates.length,
+                        awards
+                    }
+                };
+            } catch (error) {
+                return { address, remark, error: error.message };
+            }
+        }
+
+        async function queryAddresses() {
+            const text = localStorage.getItem('opinion_addresses');
+
+            if (!text) {
+                openWalletModal();
+                return;
+            }
+
+            const addressInfos = parseAddresses(text);
+            if (addressInfos.length === 0) {
+                showError('未找到有效的地址');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            
+            const expandBtn = document.getElementById('expandAllBtn');
+            const collapseBtn = document.getElementById('collapseAllBtn');
+            if (expandBtn) expandBtn.classList.remove('show');
+            if (collapseBtn) collapseBtn.classList.remove('show');
+
+            allResults = [];
+
+            try {
+                for (let i = 0; i < addressInfos.length; i++) {
+                    const progressEl = document.getElementById('progress');
+                    if (progressEl) {
+                        progressEl.textContent = `${i + 1}/${addressInfos.length}`;
+                    }
+                    const result = await analyzeAddress(addressInfos[i]);
+                    allResults.push(result);
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                displayResults();
+                if (expandBtn) expandBtn.classList.add('show');
+                if (collapseBtn) collapseBtn.classList.add('show');
+            } catch (error) {
+                console.error('查询错误:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError(`查询失败: ${error.message}`);
+            }
+        }
+
+        function displayResults() {
+            if (allResults.length === 0) return;
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            allResults.forEach((result, index) => {
+                if (result.error) {
+                    tbody.innerHTML += createErrorRow(result, index + 1);
+                } else {
+                    tbody.innerHTML += createTableRow(result, index + 1);
+                    tbody.innerHTML += createDetailRow(result, index + 1);
+                }
+            });
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function createTableRow(data, rowNum) {
+            const { address, remark, summary, dailyStats } = data;
+            
+            // 如果没有summary或dailyStats,说明数据有问题
+            if (!summary || !dailyStats) {
+                return createErrorRow(data, rowNum);
+            }
+            
+            const { totalVolume, qualifiedDays, partiallyQualifiedDays, totalDays, awards } = summary;
+
+            // 统计部分达标的具体情况
+            let partialTradesOnly = 0;  // 只达标次数
+            let partialVolumeOnly = 0;  // 只达标金额
+            
+            Object.values(dailyStats).forEach(stats => {
+                if (stats.isPartiallyQualified) {
+                    if (stats.isCountQualified) {
+                        partialTradesOnly++;
+                    } else if (stats.isVolumeQualified) {
+                        partialVolumeOnly++;
+                    }
+                }
+            });
+
+            // 构建达标显示
+            // 计算总达标天数(包括完全达标和部分达标)
+            const totalQualifiedDays = qualifiedDays + partiallyQualifiedDays;
+            
+            // 获取今天的日期 (UTC+0)
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD (UTC+0)
+            const todayStats = dailyStats[todayStr];
+            
+            let todayIcon = '';
+            let numberColor = '#888'; // 默认灰色
+            
+            if (todayStats) {
+                if (todayStats.isQualified) {
+                    // 今日完全达标 - 数字和图标都是绿色
+                    todayIcon = `<span style="color: #4caf50; font-weight: 600; margin-left: 2px;">✓</span>`;
+                    numberColor = '#4caf50';
+                } else if (todayStats.isPartiallyQualified) {
+                    // 今日部分达标 - 数字绿色,图标黄色
+                    numberColor = '#4caf50';
+                    if (todayStats.isCountQualified) {
+                        todayIcon = `<span style="color: #ffa726; font-weight: 600; cursor: help; font-size: 1.2em; margin-left: 2px;" title="${currentLang === 'zh' ? '今日仅达标次数' : 'Today trades only'}">◐</span>`;
+                    } else if (todayStats.isVolumeQualified) {
+                        todayIcon = `<span style="color: #ffa726; font-weight: 600; cursor: help; display: inline-block; transform: scaleX(-1); font-size: 1.2em; margin-left: 2px;" title="${currentLang === 'zh' ? '今日仅达标金额' : 'Today volume only'}">◐</span>`;
+                    }
+                }
+            }
+            
+            const qualifiedDisplay = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9em;">
+                    <span style="display: flex; align-items: center; gap: 2px;">
+                        <span style="color: ${numberColor}; font-weight: 600;">${totalQualifiedDays}</span>${todayIcon}
+                    </span>
+                    <span style="color: #888;">/ 10</span>
+                </div>
+            `;
+
+            const statusText = `
+                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85em;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: ${awards.dailyWarriors ? '#4caf50' : '#666'};">${awards.dailyWarriors ? '✓' : '✗'}</span>
+                        <span data-i18n="daily_warrior">${i18n[currentLang].daily_warrior}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: ${awards.volumeKings ? '#4caf50' : '#666'};">${awards.volumeKings ? '✓' : '✗'}</span>
+                        <span data-i18n="volume_king">${i18n[currentLang].volume_king}</span>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <tr class="expandable" onclick="toggleDetail(${rowNum})">
+                    <td><span class="expand-icon" id="icon-${rowNum}">▶</span></td>
+                    <td>${rowNum}</td>
+                    <td class="address-cell">${address}</td>
+                    <td>${remark || '-'}</td>
+                    <td>$${totalVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${qualifiedDisplay}</td>
+                    <td>${statusText}</td>
+                    <td style="text-align: center; color: #667eea; cursor: pointer;" data-i18n="view">${i18n[currentLang].view}</td>
+                </tr>
+            `;
+        }
+
+        function createDetailRow(data, rowNum) {
+            const { dailyStats, summary } = data;
+            const dates = Object.keys(dailyStats).sort();
+            
+            // 计算总达标天数(包括完全达标和部分达标)
+            const totalQualifiedDays = summary.qualifiedDays + summary.partiallyQualifiedDays;
+            
+            // 检查是否已达标
+            const isAlreadyQualified = totalQualifiedDays >= MIN_QUALIFIED_DAYS;
+            
+            // 修改剩余时间计算逻辑: 今天(含)到1.5的天数 >= 还需要的天数
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const endDate = new Date(END_DATE);
+            endDate.setHours(23, 59, 59, 999);
+            
+            // 计算从今天(含)到1.5的天数
+            const remainingDays = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // 计算还需要达标的天数
+            const needDays = MIN_QUALIFIED_DAYS - totalQualifiedDays;
+            
+            // 判断是否还有机会: 剩余天数 >= 还需要的天数
+            const canStillQualify = (remainingDays >= needDays);
+            const noMoreChance = !isAlreadyQualified && !canStillQualify;
+
+            let shortfallDetails = [];
+            
+            // 获取今天的日期（不含时间）
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            
+            if (noMoreChance) {
+                // 无法达标,不显示差额
+            } else if (isAlreadyQualified) {
+                // 已达标，不显示差额
+            } else {
+                // 还有机会，只显示今天及未来的未达标天数
+                dates.forEach(dateStr => {
+                    const stats = dailyStats[dateStr];
+                    const dateObj = new Date(dateStr + 'T00:00:00Z');
+                    
+                    // 只处理今天及未来的日期
+                    if (dateObj >= todayDate && !stats.isQualified) {
+                        let reasons = [];
+                        if (stats.tradeCount < MIN_TRADES_PER_DAY) {
+                            const gap = MIN_TRADES_PER_DAY - stats.tradeCount;
+                            reasons.push(currentLang === 'zh' ? `交易次数差 ${gap} 次` : `Need ${gap} more trades`);
+                        }
+                        if (stats.totalVolume < MIN_VOLUME_PER_DAY) {
+                            const gap = MIN_VOLUME_PER_DAY - stats.totalVolume;
+                            reasons.push(currentLang === 'zh' ? `交易金额差 $${gap.toFixed(2)}` : `Need $${gap.toFixed(2)} more volume`);
+                        }
+                        shortfallDetails.push({
+                            date: dateStr,
+                            trades: stats.tradeCount,
+                            volume: stats.totalVolume,
+                            reasons: reasons
+                        });
+                    }
+                });
+            }
+
+            let statusMessage, shortfallTable;
+
+            if (noMoreChance) {
+                statusMessage = `<h4 style="color: #ff6b6b;">⚠️ ${currentLang === 'zh' ? '剩余时间不足,无法达标' : 'Not enough time left'}</h4>`;
+                shortfallTable = `<p style="color: #ff6b6b; padding: 20px 0;">${currentLang === 'zh' ? `剩余时间不足,无法达到${MIN_QUALIFIED_DAYS}天要求` : `Not enough time to reach ${MIN_QUALIFIED_DAYS} days`}</p>`;
+            } else if (isAlreadyQualified) {
+                statusMessage = `<h4 style="color: #4caf50;">✅ ${currentLang === 'zh' ? '恭喜你达标了!' : 'Congratulations! You qualified!'}</h4>`;
+                shortfallTable = `<p style="color: #4caf50; font-size: 1.1em; padding: 20px 0;">🎉 ${currentLang === 'zh' ? `已达标 ${totalQualifiedDays} 天，无需补足！` : `${totalQualifiedDays} days qualified, no need to make up!`}</p>`;
+            } else {
+                statusMessage = `<h4>📊 ${currentLang === 'zh' ? `还差 ${needDays} 天` : `Need ${needDays} more days`}</h4>`;
+                
+                // 如果有需要补足的日期才显示表格
+                if (shortfallDetails.length > 0) {
+                    shortfallTable = `
+                        <table style="width: 100%; font-size: 0.85em; margin-top: 10px;">
+                            <thead>
+                                <tr style="background: #1a1e3a;">
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '日期' : 'Date'}</th>
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '交易次数' : 'Trades'}</th>
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '交易金额' : 'Volume'}</th>
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '差额原因' : 'Shortfall'}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${shortfallDetails.map(item => `
+                                    <tr style="border-bottom: 1px solid #2a2e4a;">
+                                        <td style="padding: 8px;">${item.date}</td>
+                                        <td style="padding: 8px;">${item.trades} ${currentLang === 'zh' ? '次' : ''}</td>
+                                        <td style="padding: 8px;">$${item.volume.toFixed(2)}</td>
+                                        <td style="padding: 8px; color: #ff6b6b;">${item.reasons.join(', ')}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    shortfallTable = `<p style="padding: 20px 0;">${currentLang === 'zh' ? '继续保持，再完成剩余天数即可达标！' : 'Keep going, complete the remaining days!'}</p>`;
+                }
+            }
+
+            const timeline = dates.map(dateStr => {
+                const stats = dailyStats[dateStr];
+                const [year, month, day] = dateStr.split('-');
+                
+                let className, statusText, statusIcon;
+                if (stats.isQualified) {
+                    className = 'qualified';
+                    statusIcon = '✓';
+                    statusText = currentLang === 'zh' ? '达标' : 'Qualified';
+                } else if (stats.isPartiallyQualified) {
+                    className = 'partially-qualified';
+                    statusIcon = '◐';
+                    if (currentLang === 'zh') {
+                        statusText = stats.isCountQualified ? '仅达标次数' : '仅达标金额';
+                    } else {
+                        statusText = stats.isCountQualified ? 'Trades only' : 'Volume only';
+                    }
+                } else {
+                    className = 'not-qualified';
+                    statusIcon = '✗';
+                    statusText = currentLang === 'zh' ? '未达标' : 'Not Qualified';
+                }
+
+                return `
+                    <div class="day-mini ${className}">
+                        ${day}
+                        <div class="tooltip">
+                            ${dateStr}<br>
+                            ${currentLang === 'zh' ? '交易' : 'Trades'}: ${stats.tradeCount}${currentLang === 'zh' ? '次' : ''}<br>
+                            ${currentLang === 'zh' ? '金额' : 'Volume'}: $${stats.totalVolume.toFixed(2)}<br>
+                            ${statusIcon} ${statusText}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <tr class="detail-row" id="detail-${rowNum}">
+                    <td colspan="8">
+                        <div class="detail-content">
+                            <!-- 交易笔数争议提示 -->
+                            <div style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 87, 34, 0.15) 100%); border: 2px solid #ff9800; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
+                                <div style="display: flex; align-items: flex-start; gap: 15px;">
+                                    <span style="font-size: 32px; flex-shrink: 0;">⚠️</span>
+                                    <div>
+                                        <h4 style="color: #ff9800; margin: 0 0 10px 0; font-size: 1.1em;">
+                                            ${currentLang === 'zh' ? '关于交易笔数的重要说明' : 'Important Note About Trade Count'}
+                                        </h4>
+                                        <div style="font-size: 0.95em; line-height: 1.6; color: #ddd;">
+                                            ${currentLang === 'zh' ? 
+                                                '<p style="margin: 0 0 10px 0;"><strong>关于交易笔数有争议，目前工具只能查询到链上交易记录的笔数。</strong></p>' +
+                                                '<p style="margin: 0 0 10px 0;">🔴 <strong>强烈建议以官网里面的"已关闭订单"为准！</strong></p>' +
+                                                '<p style="margin: 0 0 10px 0;">如果你不记得你做了几笔，最好去登录查询。</p>' +
+                                                '<p style="margin: 0;">💡 <strong>建议：</strong>交易时记录下自己提交订单的次数，以便核对。</p>'
+                                                : 
+                                                '<p style="margin: 0 0 10px 0;"><strong>There is a dispute about trade count. This tool can only query on-chain transaction records.</strong></p>' +
+                                                '<p style="margin: 0 0 10px 0;">🔴 <strong>Strongly recommended to use "Closed Orders" on the official website as the standard!</strong></p>' +
+                                                '<p style="margin: 0 0 10px 0;">If you don\'t remember your trade count, please login to check.</p>' +
+                                                '<p style="margin: 0;">💡 <strong>Tip:</strong> Record your order submission count when trading for verification.</p>'
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+                                <div class="detail-section">
+                                    ${statusMessage}
+                                    ${shortfallTable}
+                                </div>
+                                <div class="detail-section">
+                                    <h4>📊 ${currentLang === 'zh' ? '每日达标情况' : 'Daily Status'}</h4>
+                                    <div class="timeline-compact">${timeline}</div>
+                                    <div style="margin-top: 15px; font-size: 0.85em; color: #888;">
+                                        <div>🟢 ${currentLang === 'zh' ? '绿色 = 达标' : 'Green = Qualified'} (${summary.qualifiedDays} ${currentLang === 'zh' ? '天' : 'days'})</div>
+                                        <div>🟡 ${currentLang === 'zh' ? '黄色 = 只达标1项' : 'Yellow = Only 1 criteria met'} (${summary.partiallyQualifiedDays} ${currentLang === 'zh' ? '天' : 'days'})</div>
+                                        <div>🔴 ${currentLang === 'zh' ? '红色 = 未达标' : 'Red = Not Qualified'} (${summary.totalDays - summary.qualifiedDays - summary.partiallyQualifiedDays} ${currentLang === 'zh' ? '天' : 'days'})</div>
+                                    </div>
+                                    <div class="important-notice">
+                                        <span class="important-notice-icon">💡</span>
+                                        <span class="important-notice-text">${currentLang === 'zh' ? '建议不要卡线,多做一点会更好!' : 'Tip: Don\'t cut it close, do a bit more for safety!'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function createErrorRow(result, rowNum) {
+            return `
+                <tr>
+                    <td></td>
+                    <td>${rowNum}</td>
+                    <td class="address-cell">${result.address}</td>
+                    <td>${result.remark || '-'}</td>
+                    <td colspan="4" style="color: #f44336;">❌ ${result.error}</td>
+                </tr>
+            `;
+        }
+
+        function toggleDetail(rowNum) {
+            const detailRow = document.getElementById(`detail-${rowNum}`);
+            const icon = document.getElementById(`icon-${rowNum}`);
+            
+            if (detailRow.classList.contains('expanded')) {
+                detailRow.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                detailRow.classList.add('expanded');
+                icon.classList.add('expanded');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
