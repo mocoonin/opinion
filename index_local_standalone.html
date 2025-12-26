@@ -311,13 +311,13 @@
         }
 
         .day-mini {
-            width: 26px;
-            height: 26px;
-            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 600;
             cursor: pointer;
             position: relative;
@@ -394,17 +394,18 @@
             color: #ff6b6b;
         }
 
-        /* 悬浮按钮 - 修改为半圆形设计 */
+        /* 悬浮按钮 */
         .float-btn {
             position: fixed;
             right: 20px;
-            width: 40px;
-            height: 20px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             color: white;
-            font-size: 14px;
-            cursor: pointer;
+            font-size: 16px;
+            cursor: move;
             box-shadow: 0 3px 12px rgba(102, 126, 234, 0.4);
             z-index: 999;
             display: none;
@@ -423,20 +424,29 @@
         }
 
         .float-btn:active {
-            cursor: pointer;
+            cursor: grabbing;
         }
 
         .expand-btn {
-            top: calc(50% - 25px);
-            border-radius: 20px 20px 0 0;
+            top: calc(50% - 45px);
         }
 
         .collapse-btn {
             top: calc(50% + 5px);
-            border-radius: 0 0 20px 20px;
         }
 
-        /* 醒目提示样式 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.8em;
+            }
+        }
+
         .important-notice {
             background: linear-gradient(135deg, rgba(255, 167, 38, 0.2) 0%, rgba(251, 140, 0, 0.2) 100%);
             border: 2px solid #ffa726;
@@ -471,18 +481,6 @@
                 box-shadow: 0 0 0 8px rgba(255, 167, 38, 0);
             }
         }
-
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            th, td {
-                padding: 10px 8px;
-                font-size: 0.8em;
-            }
-        }
     </style>
 </head>
 <body>
@@ -507,9 +505,6 @@
                 <button class="icon-btn lang-btn" onclick="toggleLanguage()" title="切换语言">
                     <span id="langText" style="font-size: 14px; font-weight: 600;">中文</span>
                 </button>
-                <button class="icon-btn lang-btn" onclick="clearCache()" title="清除缓存">
-                    <span style="font-size: 13px; font-weight: 600;" data-i18n="clear_cache">清空缓存</span>
-                </button>
                 <button class="icon-btn refresh-btn" onclick="queryAddresses()" title="刷新数据">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
@@ -533,6 +528,7 @@
                         <th style="width: 40px;"></th>
                         <th style="width: 60px;" data-i18n="th_no">序号</th>
                         <th data-i18n="th_address">钱包地址</th>
+                        <th style="width: 140px; padding-left: 2px;" data-i18n="th_wallet_assets">钱包资产</th>
                         <th style="width: 120px;" data-i18n="th_remark">备注</th>
                         <th style="width: 120px;" data-i18n="th_volume">总交易额</th>
                         <th style="width: 100px;" data-i18n="th_qualified">达标天数</th>
@@ -559,26 +555,15 @@
                 <button class="modal-close" onclick="closeWalletModal()">×</button>
             </div>
             <div class="modal-body">
-                <!-- API Key 输入 -->
                 <label>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                        <path d="M2 17l10 5 10-5"/>
-                        <path d="M2 12l10 5 10-5"/>
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                        <line x1="1" y1="10" x2="23" y2="10"/>
                     </svg>
                     <span data-i18n="api_key_label">API Key:</span>
                 </label>
-                <div style="font-size: 0.85em; color: #888; margin-bottom: 8px; line-height: 1.5;">
-                    <span data-i18n="api_key_hint">请输入您的 Opinion API Key（保存后加密存储在本地浏览器）</span>
-                </div>
-                <input 
-                    type="password" 
-                    id="modalApiKey" 
-                    placeholder="sk_xxxxxxxxxxxxxxxxxxxxxxxx"
-                    style="width: 100%; padding: 12px; background: #0f1a3a; border: 1px solid #2a2e4a; border-radius: 8px; color: #fff; font-size: 14px; margin-bottom: 20px; font-family: monospace;"
-                />
+                <input type="password" id="modalApiKey" placeholder="输入你的 API Key">
                 
-                <!-- 钱包地址输入 -->
                 <label>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
                         <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
@@ -603,10 +588,10 @@
 
     <!-- 悬浮展开/折叠按钮 -->
     <button id="expandAllBtn" class="float-btn expand-btn" title="展开全部">
-        <span>▲</span>
+        <span>▼</span>
     </button>
     <button id="collapseAllBtn" class="float-btn collapse-btn" title="折叠全部">
-        <span>▼</span>
+        <span>▲</span>
     </button>
 
     <script>
@@ -616,13 +601,9 @@
         const END_DATE = new Date('2026-01-05T23:59:59Z');
         const MIN_TRADES_PER_DAY = 4; // 修正为4次
         const MIN_VOLUME_PER_DAY = 2000;
-        const MIN_QUALIFIED_DAYS = 10; // 修改为任意10天
+        const MIN_QUALIFIED_DAYS = 11; // 修正为11天
         const MIN_TOTAL_VOLUME = 2000;
         const MAX_WALLETS = 100;
-
-        // 缓存配置
-        const CACHE_KEY = 'opinion_trade_cache';
-        const CACHE_VERSION = '1.0';
 
         let allResults = [];
         let allExpanded = false;
@@ -637,6 +618,7 @@
                 loading: '正在查询',
                 th_no: '序号',
                 th_address: '钱包地址',
+                th_wallet_assets: '钱包资产',
                 th_remark: '备注',
                 th_volume: '总交易额',
                 th_qualified: '达标天数',
@@ -644,7 +626,6 @@
                 th_detail: '每日详情',
                 wallet_config: '钱包配置',
                 api_key_label: 'API Key:',
-                api_key_hint: '请输入您的 Opinion API Key（保存后加密存储在本地浏览器）',
                 wallet_label: '钱包地址 (每行一个):',
                 wallet_hint: '请输入注册 Opinion 时使用的钱包地址用于查询数据,每行一个,地址和备注中间是空格。',
                 max_wallets: '个地址',
@@ -658,8 +639,7 @@
                 no_more_chance: '⚠️ 剩余时间不足,无法达标',
                 already_qualified: '✓ 已完成达标要求',
                 need_more: '还差',
-                days: '天',
-                clear_cache: '清空缓存'
+                days: '天'
             },
             en: {
                 title: '📊 Opinion Batch Query Tool',
@@ -668,6 +648,7 @@
                 loading: 'Querying',
                 th_no: 'No.',
                 th_address: 'Wallet Address',
+                th_wallet_assets: 'Wallet Assets',
                 th_remark: 'Remark',
                 th_volume: 'Total Volume',
                 th_qualified: 'Qualified Days',
@@ -675,7 +656,6 @@
                 th_detail: 'Details',
                 wallet_config: 'Wallet Config',
                 api_key_label: 'API Key:',
-                api_key_hint: 'Enter your Opinion API Key (securely stored locally in browser)',
                 wallet_label: 'Wallet Addresses (one per line):',
                 wallet_hint: 'Enter wallet addresses used to register Opinion for data query, one per line, address and note separated by space.',
                 max_wallets: 'addresses',
@@ -689,85 +669,14 @@
                 no_more_chance: '⚠️ Not enough time left',
                 already_qualified: '✓ Requirements met',
                 need_more: 'Need',
-                days: 'more days',
-                clear_cache: 'Clear Cache'
+                days: 'more days'
             }
         };
 
-        // 缓存管理函数
-        function getCacheData() {
-            try {
-                const cached = localStorage.getItem(CACHE_KEY);
-                if (!cached) return null;
-                
-                const data = JSON.parse(cached);
-                if (data.version !== CACHE_VERSION) {
-                    localStorage.removeItem(CACHE_KEY);
-                    return null;
-                }
-                
-                return data.records || {};
-            } catch (e) {
-                console.error('读取缓存失败:', e);
-                return null;
-            }
-        }
-
-        function saveCacheData(address, dailyStats) {
-            try {
-                const cache = getCacheData() || {};
-                
-                // 获取今天的日期（不含时间）
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStr = today.toISOString().split('T')[0];
-                
-                // 只缓存已达标的天数数据，且不包含今天
-                const qualifiedDays = {};
-                Object.keys(dailyStats).forEach(date => {
-                    // 排除今天，只缓存过去的已达标天数
-                    if (date !== todayStr && dailyStats[date].isQualified) {
-                        qualifiedDays[date] = dailyStats[date];
-                    }
-                });
-                
-                if (Object.keys(qualifiedDays).length > 0) {
-                    cache[address.toLowerCase()] = {
-                        qualifiedDays: qualifiedDays,
-                        lastUpdate: new Date().toISOString()
-                    };
-                    
-                    localStorage.setItem(CACHE_KEY, JSON.stringify({
-                        version: CACHE_VERSION,
-                        records: cache
-                    }));
-                }
-            } catch (e) {
-                console.error('保存缓存失败:', e);
-            }
-        }
-
-        function getCachedQualifiedDays(address) {
-            const cache = getCacheData();
-            if (!cache) return null;
-            
-            const record = cache[address.toLowerCase()];
-            return record ? record.qualifiedDays : null;
-        }
-
-        function clearCache() {
-            if (confirm(currentLang === 'zh' ? '确定要清除所有缓存吗?' : 'Clear all cache?')) {
-                localStorage.removeItem(CACHE_KEY);
-                alert(currentLang === 'zh' ? '缓存已清除!' : 'Cache cleared!');
-            }
-        }
-
         // 初始化
         window.addEventListener('DOMContentLoaded', () => {
-            const hasApiKey = localStorage.getItem('opinion_api_key');
-            const hasConfig = localStorage.getItem('opinion_addresses');
-            
-            if (!hasApiKey || !hasConfig) {
+            const hasConfig = localStorage.getItem('opinion_api_key') && localStorage.getItem('opinion_addresses');
+            if (!hasConfig) {
                 openWalletModal();
             } else {
                 queryAddresses();
@@ -798,11 +707,11 @@
 
         // 钱包模态框
         function openWalletModal() {
-            const savedAddresses = localStorage.getItem('opinion_addresses') || '';
             const savedApiKey = localStorage.getItem('opinion_api_key') || '';
+            const savedAddresses = localStorage.getItem('opinion_addresses') || '';
             
-            document.getElementById('modalAddresses').value = savedAddresses;
             document.getElementById('modalApiKey').value = savedApiKey;
+            document.getElementById('modalAddresses').value = savedAddresses;
             updateWalletCount();
             
             document.getElementById('walletModal').classList.add('show');
@@ -829,18 +738,18 @@
             const addresses = document.getElementById('modalAddresses').value.trim();
             
             if (!apiKey) {
-                alert(currentLang === 'zh' ? '请输入 API Key' : 'Please enter API Key');
+                alert('请输入 API Key');
                 return;
             }
             
             if (!addresses) {
-                alert(currentLang === 'zh' ? '请输入至少一个钱包地址' : 'Please enter at least one wallet address');
+                alert('请输入至少一个钱包地址');
                 return;
             }
             
             const lines = addresses.split('\n').filter(line => line.trim() && line.trim().startsWith('0x'));
             if (lines.length > MAX_WALLETS) {
-                alert(`${currentLang === 'zh' ? '最多只能添加' : 'Maximum'} ${MAX_WALLETS} ${currentLang === 'zh' ? '个地址' : 'addresses'}`);
+                alert(`最多只能添加 ${MAX_WALLETS} 个地址`);
                 return;
             }
             
@@ -910,9 +819,9 @@
                 // 如果没有移动,执行点击
                 if (!hasMoved) {
                     if (e.target.closest('#expandAllBtn')) {
-                        collapseAll();  // ▲向上箭头 = 折叠
+                        expandAll();
                     } else if (e.target.closest('#collapseAllBtn')) {
-                        expandAll();    // ▼向下箭头 = 展开
+                        collapseAll();
                     }
                 } else {
                     // 拖动结束,吸附到左右
@@ -989,58 +898,29 @@
             return addresses;
         }
 
-        async function fetchUserTrades(address) {
-            // 本地版本：直接调用 Opinion API
-            const apiKey = localStorage.getItem('opinion_api_key');
-            if (!apiKey) {
-                throw new Error(currentLang === 'zh' ? '未配置 API Key' : 'API Key not configured');
-            }
-            
-            console.log('🔍 开始查询地址:', address);
-            console.log('🔑 使用 API Key:', apiKey.substring(0, 10) + '...');
-            
-            const url = `https://openapi.opinion.trade/openapi/trade/user/${address}`;
+        async function fetchUserTrades(address, apiKey) {
+            const url = `${API_BASE}/trade/user/${address}`;
             let allTrades = [];
             let page = 1;
             const limit = 20;
             
             while (true) {
-                const fullUrl = `${url}?page=${page}&limit=${limit}`;
-                console.log('📡 请求:', fullUrl);
-                
-                const response = await fetch(fullUrl, {
-                    headers: { 
-                        'apikey': apiKey,
-                        'accept': 'application/json'
-                    }
+                const response = await fetch(`${url}?page=${page}&limit=${limit}`, {
+                    headers: { 'apikey': apiKey }
                 });
 
-                console.log('← 响应状态:', response.status, response.statusText);
-
-                if (!response.ok) {
-                    if (response.status === 401 || response.status === 403) {
-                        throw new Error(currentLang === 'zh' ? 'API Key 无效或已过期' : 'Invalid or expired API Key');
-                    }
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                console.log('✓ 获取数据:', data);
-                
-                if (data.errno !== 0) {
-                    throw new Error(data.errmsg || (currentLang === 'zh' ? 'API错误' : 'API Error'));
-                }
+                if (data.errno !== 0) throw new Error(data.errmsg || 'API错误');
 
                 const trades = data.result?.list || [];
                 allTrades = allTrades.concat(trades);
-                console.log('✓ 本页获取交易记录:', trades.length, '条');
 
                 if (trades.length < limit || allTrades.length >= (data.result?.total || 0)) break;
                 page++;
                 if (page > 100) break;
             }
 
-            console.log('✅ 成功！总共获取', allTrades.length, '条交易记录');
             return allTrades;
         }
 
@@ -1083,19 +963,11 @@
             };
         }
 
-        async function analyzeAddress(addressInfo) {
+        async function analyzeAddress(addressInfo, apiKey) {
             const { address, remark } = addressInfo;
 
             try {
-                // 获取缓存的已达标天数
-                const cachedQualifiedDays = getCachedQualifiedDays(address);
-                
-                // 获取今天的日期（不含时间）
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStr = today.toISOString().split('T')[0];
-                
-                const allTrades = await fetchUserTrades(address);
+                const allTrades = await fetchUserTrades(address, apiKey);
                 const trades = filterTradesByDateRange(allTrades);
                 const tradesByDate = groupTradesByDate(trades);
                 
@@ -1105,28 +977,8 @@
                 let qualifiedDays = 0;
                 let partiallyQualifiedDays = 0;
 
-                // 先加载缓存的已达标天数（不包含今天）
-                if (cachedQualifiedDays) {
-                    Object.keys(cachedQualifiedDays).forEach(date => {
-                        // 只使用过去的缓存，今天的数据必须重新查询
-                        if (date !== todayStr) {
-                            dailyStats[date] = cachedQualifiedDays[date];
-                        }
-                    });
-                }
-
                 dates.forEach(date => {
                     const dateStr = formatDateFull(date);
-                    
-                    // 如果已经有缓存且已达标（且不是今天），跳过计算
-                    if (dateStr !== todayStr && dailyStats[dateStr] && dailyStats[dateStr].isQualified) {
-                        totalVolume += dailyStats[dateStr].totalVolume;
-                        qualifiedDays++;
-                        if (dailyStats[dateStr].isPartiallyQualified) partiallyQualifiedDays++;
-                        return;
-                    }
-                    
-                    // 今天或未缓存的日期，重新计算
                     const dayTrades = tradesByDate[dateStr] || [];
                     const stats = calculateDailyStats(dayTrades);
                     
@@ -1135,9 +987,6 @@
                     if (stats.isQualified) qualifiedDays++;
                     if (stats.isPartiallyQualified) partiallyQualifiedDays++;
                 });
-
-                // 保存缓存（会自动排除今天）
-                saveCacheData(address, dailyStats);
 
                 const awards = {
                     dailyWarriors: qualifiedDays >= MIN_QUALIFIED_DAYS,
@@ -1162,9 +1011,10 @@
         }
 
         async function queryAddresses() {
+            const apiKey = localStorage.getItem('opinion_api_key');
             const text = localStorage.getItem('opinion_addresses');
 
-            if (!text) {
+            if (!apiKey || !text) {
                 openWalletModal();
                 return;
             }
@@ -1192,7 +1042,7 @@
                     if (progressEl) {
                         progressEl.textContent = `${i + 1}/${addressInfos.length}`;
                     }
-                    const result = await analyzeAddress(addressInfos[i]);
+                    const result = await analyzeAddress(addressInfos[i], apiKey);
                     allResults.push(result);
                 }
 
@@ -1206,6 +1056,39 @@
                 showError(`查询失败: ${error.message}`);
             }
         }
+        // 获取账户信息
+        async function fetchAccountInfo(address) {
+            try {
+                const response = await fetch(
+                    `https://proxy.opinion.trade:8443/api/bsc/api/v2/user/${address}/profile?chainId=56`
+                );
+                
+                if (!response.ok) {
+                    return { balance: 0, netWorth: 0, portfolio: 0 };
+                }
+                
+                const data = await response.json();
+                if (data.errno !== 0) {
+                    return { balance: 0, netWorth: 0, portfolio: 0 };
+                }
+                
+                const result = data.result;
+                let totalBalance = 0;
+                if (result.balance && Array.isArray(result.balance) && result.balance.length > 0) {
+                    totalBalance = parseFloat(result.balance[0].totalBalance || 0);
+                }
+                
+                return {
+                    balance: totalBalance,
+                    netWorth: parseFloat(result.netWorth || 0),
+                    portfolio: parseFloat(result.portfolio || 0)
+                };
+            } catch (e) {
+                console.error(`获取${address}账户信息失败:`, e);
+                return { balance: 0, netWorth: 0, portfolio: 0 };
+            }
+        }
+
 
         function displayResults() {
             if (allResults.length === 0) return;
@@ -1223,6 +1106,37 @@
             });
 
             document.getElementById('results').style.display = 'block';
+            
+            // 异步加载账户信息
+            allResults.forEach((result, idx) => {
+                if (!result.error && result.address) {
+                    setTimeout(() => {
+                        fetchAccountInfo(result.address).then(info => {
+                            const cell = document.getElementById(`account-${result.address}`);
+                            if (!cell) return;
+                            
+                            const portSpan = cell.querySelector('.portfolio-val');
+                            const balSpan = cell.querySelector('.balance-val');
+                            const netSpan = cell.querySelector('.networth-val');
+                            
+                            if (portSpan) {
+                                portSpan.textContent = `$${info.portfolio.toFixed(2)}`;
+                                portSpan.style.color = info.portfolio > 0 ? '#ffa726' : '#666';
+                            }
+                            if (balSpan) {
+                                balSpan.textContent = `$${info.balance.toFixed(2)}`;
+                                balSpan.style.color = info.balance > 0 ? '#4caf50' : '#666';
+                            }
+                            if (netSpan) {
+                                netSpan.textContent = `$${info.netWorth.toFixed(2)}`;
+                                netSpan.style.color = info.netWorth > 0 ? '#667eea' : '#666';
+                            }
+                        }).catch(err => {
+                            console.error(`加载账户信息失败:`, err);
+                        });
+                    }, idx * 200);
+                }
+            });
         }
 
         function createTableRow(data, rowNum) {
@@ -1282,7 +1196,7 @@
                     <span style="display: flex; align-items: center; gap: 2px;">
                         <span style="color: ${numberColor}; font-weight: 600;">${totalQualifiedDays}</span>${todayIcon}
                     </span>
-                    <span style="color: #888;">/ 10</span>
+                    <span style="color: #888;">/ 11</span>
                 </div>
             `;
 
@@ -1304,6 +1218,13 @@
                     <td><span class="expand-icon" id="icon-${rowNum}">▶</span></td>
                     <td>${rowNum}</td>
                     <td class="address-cell">${address}</td>
+                    <td class="account-info-cell" id="account-${address}" style="padding: 6px 8px 6px 2px; vertical-align: middle;">
+                        <div style="font-size: 0.7em; color: #888; line-height: 1.3; white-space: nowrap;">
+                            <div>持仓: <span class="portfolio-val" style="color: #ffa726; font-weight: 600;">...</span></div>
+                            <div>余额: <span class="balance-val" style="color: #4caf50; font-weight: 600;">...</span></div>
+                            <div>净资产: <span class="networth-val" style="color: #667eea; font-weight: 600;">...</span></div>
+                        </div>
+                    </td>
                     <td>${remark || '-'}</td>
                     <td>$${totalVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td>${qualifiedDisplay}</td>
@@ -1454,7 +1375,7 @@
 
             return `
                 <tr class="detail-row" id="detail-${rowNum}">
-                    <td colspan="8">
+                    <td colspan="9">
                         <div class="detail-content">
                             <!-- 交易笔数争议提示 -->
                             <div style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 87, 34, 0.15) 100%); border: 2px solid #ff9800; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
@@ -1507,13 +1428,13 @@
                 </tr>
             `;
         }
-
         function createErrorRow(result, rowNum) {
             return `
                 <tr>
                     <td></td>
                     <td>${rowNum}</td>
                     <td class="address-cell">${result.address}</td>
+                    <td></td>
                     <td>${result.remark || '-'}</td>
                     <td colspan="4" style="color: #f44336;">❌ ${result.error}</td>
                 </tr>
