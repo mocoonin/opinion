@@ -631,9 +631,7 @@
 
         // 获取UTC+0当前日期 (直接使用本地UTC时间)
         function getTodayUTC0() {
-            const utcDate = new Date().toISOString().split('T')[0];
-            console.log(`[时区] 当前UTC+0日期: ${utcDate}`);
-            return utcDate;
+            return new Date().toISOString().split('T')[0];
         }
 
         // 获取缓存键
@@ -685,7 +683,7 @@
         const i18n = {
             zh: {
                 title: '📊 Opinion 批量查询工具',
-                subtitle: '2025-12-22 至 2026-01-05 (UTC+0) | v1.7',
+                subtitle: '2025-12-22 至 2026-01-05 (UTC+0) | v1.7.1',
                 refresh: '刷新数据',
                 loading: '正在查询',
                 th_no: '序号',
