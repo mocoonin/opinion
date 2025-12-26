@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Opinion 批量查询工具</title>
+    <title>Opinion 批量查询工具 v1.1</title>
     <style>
         * {
             margin: 0;
@@ -530,6 +530,8 @@
                         <th data-i18n="th_address">钱包地址</th>
                         <th style="width: 140px; padding-left: 2px;" data-i18n="th_wallet_assets">钱包资产</th>
                         <th style="width: 120px;" data-i18n="th_remark">备注</th>
+                        <th style="width: 120px;" data-i18n="th_today_volume">今日交易量</th>
+                        <th style="width: 160px;" data-i18n="th_today_gap">今日差额</th>
                         <th style="width: 120px;" data-i18n="th_volume">总交易额</th>
                         <th style="width: 100px;" data-i18n="th_qualified">达标天数</th>
                         <th style="width: 180px;" data-i18n="th_status">达标状态</th>
@@ -586,6 +588,7 @@
         </div>
     </div>
 
+
     <!-- 悬浮展开/折叠按钮 -->
     <button id="expandAllBtn" class="float-btn expand-btn" title="展开全部">
         <span>▼</span>
@@ -604,22 +607,93 @@
         const MIN_QUALIFIED_DAYS = 11; // 修正为11天
         const MIN_TOTAL_VOLUME = 2000;
         const MAX_WALLETS = 100;
+        const CACHE_KEY_PREFIX = 'opinion_cache_';
+        const CACHE_VERSION = 'v2'; // 缓存版本号
 
         let allResults = [];
         let allExpanded = false;
         let currentLang = 'zh';
+        let currentUTC0Date = null; // 当前UTC+0日期，用于判断"今天及未来"
+
+        // ==================== 缓存管理 ====================
+        // 清除旧版本缓存
+        (function clearOldCache() {
+            const currentVersion = localStorage.getItem('opinion_cache_version');
+            if (currentVersion !== CACHE_VERSION) {
+                console.log('[缓存] 检测到旧版本缓存,正在清除...');
+                Object.keys(localStorage)
+                    .filter(key => key.startsWith(CACHE_KEY_PREFIX))
+                    .forEach(key => localStorage.removeItem(key));
+                localStorage.setItem('opinion_cache_version', CACHE_VERSION);
+                console.log('[缓存] 旧缓存已清除,版本已更新为', CACHE_VERSION);
+            }
+        })();
+
+        // 获取UTC+0当前日期 (直接使用本地UTC时间)
+        function getTodayUTC0() {
+            const utcDate = new Date().toISOString().split('T')[0];
+            console.log(`[时区] 当前UTC+0日期: ${utcDate}`);
+            return utcDate;
+        }
+
+        // 获取缓存键
+        function getCacheKey(address, date) {
+            return `${CACHE_KEY_PREFIX}${address}_${date}`;
+        }
+
+        // 保存到缓存
+        function saveToCache(address, date, data) {
+            const today = getTodayUTC0();
+            if (date < today) {
+                try {
+                    const key = getCacheKey(address, date);
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (e) {
+                    console.warn('缓存保存失败:', e);
+                }
+            }
+        }
+
+        // 从缓存读取
+        function getFromCache(address, date) {
+            const today = getTodayUTC0();
+            const shouldCache = date < today;
+            console.log(`[缓存] 日期: ${date}, 今天: ${today}, 可缓存: ${shouldCache}`);
+            
+            if (shouldCache) {
+                try {
+                    const key = getCacheKey(address, date);
+                    const cached = localStorage.getItem(key);
+                    if (cached) {
+                        console.log(`[缓存] ✓ 命中缓存: ${date}`);
+                        return JSON.parse(cached);
+                    }
+                } catch (e) {
+                    console.warn('缓存读取失败:', e);
+                }
+            }
+            return null;
+        }
+
+        // 显示缓存状态提示
+        function showCacheStatus() {
+            // 简单提示,不影响UI
+            console.log('✓ 使用缓存数据加速查询');
+        }
 
         // 国际化文本
         const i18n = {
             zh: {
                 title: '📊 Opinion 批量查询工具',
-                subtitle: '2025-12-22 至 2026-01-05 交易数据分析',
+                subtitle: '2025-12-22 至 2026-01-05 (UTC+0) | v1.7',
                 refresh: '刷新数据',
                 loading: '正在查询',
                 th_no: '序号',
                 th_address: '钱包地址',
                 th_wallet_assets: '钱包资产',
                 th_remark: '备注',
+                th_today_volume: '今日交易量',
+                th_today_gap: '今日差额',
                 th_volume: '总交易额',
                 th_qualified: '达标天数',
                 th_status: '达标状态',
@@ -643,13 +717,15 @@
             },
             en: {
                 title: '📊 Opinion Batch Query Tool',
-                subtitle: 'Trading data analysis from 2025-12-22 to 2026-01-05',
+                subtitle: '2025-12-22 to 2026-01-05 (UTC+0) | v1.1',
                 refresh: 'Refresh',
                 loading: 'Querying',
                 th_no: 'No.',
                 th_address: 'Wallet Address',
                 th_wallet_assets: 'Wallet Assets',
                 th_remark: 'Remark',
+                th_today_volume: 'Today Volume',
+                th_today_gap: 'Today Gap',
                 th_volume: 'Total Volume',
                 th_qualified: 'Qualified Days',
                 th_status: 'Status',
@@ -720,6 +796,7 @@
         function closeWalletModal() {
             document.getElementById('walletModal').classList.remove('show');
         }
+
 
         function updateWalletCount() {
             const text = document.getElementById('modalAddresses').value;
@@ -899,6 +976,7 @@
         }
 
         async function fetchUserTrades(address, apiKey) {
+            // 本地版本: 直接调用Opinion API
             const url = `${API_BASE}/trade/user/${address}`;
             let allTrades = [];
             let page = 1;
@@ -967,25 +1045,61 @@
             const { address, remark } = addressInfo;
 
             try {
-                const allTrades = await fetchUserTrades(address, apiKey);
-                const trades = filterTradesByDateRange(allTrades);
-                const tradesByDate = groupTradesByDate(trades);
-                
                 const dates = getDateRange();
                 const dailyStats = {};
+                let usedCache = false;
+
+                // 先尝试从缓存加载历史数据
+                dates.forEach(date => {
+                    const dateStr = formatDateFull(date);
+                    const cached = getFromCache(address, dateStr);
+                    if (cached) {
+                        dailyStats[dateStr] = cached;
+                        usedCache = true;
+                    }
+                });
+
+                // 获取需要实时查询的日期
+                const needFetchDates = dates.filter(date => {
+                    const dateStr = formatDateFull(date);
+                    return !dailyStats[dateStr];
+                });
+
+                // 如果有需要查询的日期,则查询API
+                if (needFetchDates.length > 0) {
+                    const allTrades = await fetchUserTrades(address, apiKey);
+                    const trades = filterTradesByDateRange(allTrades);
+                    const tradesByDate = groupTradesByDate(trades);
+                    
+                    needFetchDates.forEach(date => {
+                        const dateStr = formatDateFull(date);
+                        const dayTrades = tradesByDate[dateStr] || [];
+                        const stats = calculateDailyStats(dayTrades);
+                        
+                        dailyStats[dateStr] = stats;
+                        
+                        // 保存到缓存(只缓存今日之前的数据)
+                        saveToCache(address, dateStr, stats);
+                    });
+                }
+
+                if (usedCache) {
+                    showCacheStatus();
+                }
+
+                // 计算汇总统计
                 let totalVolume = 0;
                 let qualifiedDays = 0;
                 let partiallyQualifiedDays = 0;
 
                 dates.forEach(date => {
                     const dateStr = formatDateFull(date);
-                    const dayTrades = tradesByDate[dateStr] || [];
-                    const stats = calculateDailyStats(dayTrades);
-                    
-                    dailyStats[dateStr] = stats;
-                    totalVolume += stats.totalVolume;
-                    if (stats.isQualified) qualifiedDays++;
-                    if (stats.isPartiallyQualified) partiallyQualifiedDays++;
+                    const stats = dailyStats[dateStr];
+                    if (stats) {
+                        totalVolume += stats.totalVolume;
+                        if (stats.isQualified) qualifiedDays++;
+                        if (stats.isPartiallyQualified) partiallyQualifiedDays++;
+                    }
                 });
 
                 const awards = {
@@ -1006,7 +1120,12 @@
                     }
                 };
             } catch (error) {
-                return { address, remark, error: error.message };
+                console.error(`分析地址 ${address} 时出错:`, error);
+                return {
+                    address,
+                    remark,
+                    error: error.message
+                };
             }
         }
 
@@ -1024,6 +1143,9 @@
                 showError('未找到有效的地址');
                 return;
             }
+
+            // 获取UTC+0当前日期，用于判断"今天及未来"
+            currentUTC0Date = getTodayUTC0();
 
             document.getElementById('loading').style.display = 'block';
             document.getElementById('error').style.display = 'none';
@@ -1119,16 +1241,16 @@
                             const balSpan = cell.querySelector('.balance-val');
                             const netSpan = cell.querySelector('.networth-val');
                             
-                            if (portSpan) {
-                                portSpan.textContent = `$${info.portfolio.toFixed(2)}`;
+                            if (portSpan && info.portfolio !== undefined) {
+                                portSpan.textContent = `$${(info.portfolio || 0).toFixed(2)}`;
                                 portSpan.style.color = info.portfolio > 0 ? '#ffa726' : '#666';
                             }
-                            if (balSpan) {
-                                balSpan.textContent = `$${info.balance.toFixed(2)}`;
+                            if (balSpan && info.balance !== undefined) {
+                                balSpan.textContent = `$${(info.balance || 0).toFixed(2)}`;
                                 balSpan.style.color = info.balance > 0 ? '#4caf50' : '#666';
                             }
-                            if (netSpan) {
-                                netSpan.textContent = `$${info.netWorth.toFixed(2)}`;
+                            if (netSpan && info.netWorth !== undefined) {
+                                netSpan.textContent = `$${(info.netWorth || 0).toFixed(2)}`;
                                 netSpan.style.color = info.netWorth > 0 ? '#667eea' : '#666';
                             }
                         }).catch(err => {
@@ -1168,9 +1290,39 @@
             const totalQualifiedDays = qualifiedDays + partiallyQualifiedDays;
             
             // 获取今天的日期 (UTC+0)
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD (UTC+0)
+            const todayStr = getTodayUTC0();
             const todayStats = dailyStats[todayStr];
+            
+            // 计算今日交易量和差额
+            let todayVolume = 0;
+            let todayTradeCount = 0;
+            let todayGapVolume = 0;
+            let todayGapTrades = 0;
+            let todayGapText = '-';
+            
+            if (todayStats) {
+                todayVolume = todayStats.totalVolume || 0;
+                todayTradeCount = todayStats.tradeCount || 0;
+                
+                // 计算差额
+                todayGapVolume = MIN_VOLUME_PER_DAY - todayVolume;
+                todayGapTrades = MIN_TRADES_PER_DAY - todayTradeCount;
+                
+                if (todayStats.isQualified) {
+                    todayGapText = `<span style="color: #4caf50; font-weight: 600;">✅ ${currentLang === 'zh' ? '已达标' : 'Qualified'}</span>`;
+                } else {
+                    // 未达标，显示差额（换行显示）
+                    let gapLines = [];
+                    if (todayGapTrades > 0) {
+                        gapLines.push(`${currentLang === 'zh' ? '次数' : 'Trades'}：${currentLang === 'zh' ? '差' : '-'}${todayGapTrades}${currentLang === 'zh' ? '次' : ''}`);
+                    }
+                    if (todayGapVolume > 0) {
+                        gapLines.push(`${currentLang === 'zh' ? '金额' : 'Vol'}：${currentLang === 'zh' ? '差' : '-'}$${todayGapVolume.toFixed(2)}`);
+                    }
+                    todayGapText = gapLines.length > 0 ? 
+                        `<div style="color: #ff6b6b; font-size: 0.85em; line-height: 1.6;">${gapLines.join('<br>')}</div>` : '-';
+                }
+            }
             
             let todayIcon = '';
             let numberColor = '#888'; // 默认灰色
@@ -1226,6 +1378,8 @@
                         </div>
                     </td>
                     <td>${remark || '-'}</td>
+                    <td style="font-size: 0.9em;">$${todayVolume.toFixed(2)}</td>
+                    <td style="font-size: 0.85em; white-space: nowrap;">${todayGapText}</td>
                     <td>$${totalVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td>${qualifiedDisplay}</td>
                     <td>${statusText}</td>
@@ -1262,23 +1416,26 @@
 
             let shortfallDetails = [];
             
-            // 获取今天的日期（不含时间）
-            const todayDate = new Date();
-            todayDate.setHours(0, 0, 0, 0);
+            // 使用UTC+0日期判断"今天及未来"
+            let todayDateStr = currentUTC0Date; // 格式: "2025-12-26"
+            if (!todayDateStr) {
+                // 备用：如果没有获取到，使用本地UTC时间
+                todayDateStr = new Date().toISOString().split('T')[0];
+            }
             
             if (noMoreChance) {
                 // 无法达标,不显示差额
-            } else if (isAlreadyQualified) {
-                // 已达标，不显示差额
             } else {
-                // 还有机会，只显示今天及未来的未达标天数
+                // 显示所有日期（从12-22到1-5）
+                // 无论是否已达标，都显示
                 dates.forEach(dateStr => {
                     const stats = dailyStats[dateStr];
-                    const dateObj = new Date(dateStr + 'T00:00:00Z');
                     
-                    // 只处理今天及未来的日期
-                    if (dateObj >= todayDate && !stats.isQualified) {
-                        let reasons = [];
+                    // 显示所有日期，不做任何过滤
+                    let reasons = [];
+                    
+                    // 如果未达标，显示差额原因
+                    if (!stats.isQualified) {
                         if (stats.tradeCount < MIN_TRADES_PER_DAY) {
                             const gap = MIN_TRADES_PER_DAY - stats.tradeCount;
                             reasons.push(currentLang === 'zh' ? `交易次数差 ${gap} 次` : `Need ${gap} more trades`);
@@ -1287,13 +1444,15 @@
                             const gap = MIN_VOLUME_PER_DAY - stats.totalVolume;
                             reasons.push(currentLang === 'zh' ? `交易金额差 $${gap.toFixed(2)}` : `Need $${gap.toFixed(2)} more volume`);
                         }
-                        shortfallDetails.push({
-                            date: dateStr,
-                            trades: stats.tradeCount,
-                            volume: stats.totalVolume,
-                            reasons: reasons
-                        });
                     }
+                    
+                    shortfallDetails.push({
+                        date: dateStr,
+                        trades: stats.tradeCount,
+                        volume: stats.totalVolume,
+                        reasons: reasons,
+                        isQualified: stats.isQualified
+                    });
                 });
             }
 
@@ -1304,7 +1463,47 @@
                 shortfallTable = `<p style="color: #ff6b6b; padding: 20px 0;">${currentLang === 'zh' ? `剩余时间不足,无法达到${MIN_QUALIFIED_DAYS}天要求` : `Not enough time to reach ${MIN_QUALIFIED_DAYS} days`}</p>`;
             } else if (isAlreadyQualified) {
                 statusMessage = `<h4 style="color: #4caf50;">✅ ${currentLang === 'zh' ? '恭喜你达标了!' : 'Congratulations! You qualified!'}</h4>`;
-                shortfallTable = `<p style="color: #4caf50; font-size: 1.1em; padding: 20px 0;">🎉 ${currentLang === 'zh' ? `已达标 ${totalQualifiedDays} 天，无需补足！` : `${totalQualifiedDays} days qualified, no need to make up!`}</p>`;
+                
+                // 已达标也显示日期表格
+                if (shortfallDetails.length > 0) {
+                    shortfallTable = `
+                        <table style="width: 100%; font-size: 0.85em; margin-top: 10px;">
+                            <thead>
+                                <tr style="background: #1a1e3a;">
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '日期' : 'Date'}</th>
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '交易次数' : 'Trades'}</th>
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '交易金额' : 'Volume'}</th>
+                                    <th style="padding: 8px; text-align: left;">${currentLang === 'zh' ? '状态' : 'Status'}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${shortfallDetails.map(item => {
+                                    if (item.isQualified) {
+                                        return `
+                                            <tr style="border-bottom: 1px solid #2a2e4a;">
+                                                <td style="padding: 8px;">${item.date}</td>
+                                                <td style="padding: 8px;">${item.trades} ${currentLang === 'zh' ? '次' : ''}</td>
+                                                <td style="padding: 8px;">$${item.volume.toFixed(2)}</td>
+                                                <td style="padding: 8px; color: #4caf50;">✅ ${currentLang === 'zh' ? '已达标' : 'Qualified'}</td>
+                                            </tr>
+                                        `;
+                                    } else {
+                                        return `
+                                            <tr style="border-bottom: 1px solid #2a2e4a;">
+                                                <td style="padding: 8px;">${item.date}</td>
+                                                <td style="padding: 8px;">${item.trades} ${currentLang === 'zh' ? '次' : ''}</td>
+                                                <td style="padding: 8px;">$${item.volume.toFixed(2)}</td>
+                                                <td style="padding: 8px; color: #ff6b6b;">${item.reasons.join(', ')}</td>
+                                            </tr>
+                                        `;
+                                    }
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    shortfallTable = `<p style="color: #4caf50; font-size: 1.1em; padding: 20px 0;">🎉 ${currentLang === 'zh' ? `已达标 ${totalQualifiedDays} 天，无需补足！` : `${totalQualifiedDays} days qualified, no need to make up!`}</p>`;
+                }
             } else {
                 statusMessage = `<h4>📊 ${currentLang === 'zh' ? `还差 ${needDays} 天` : `Need ${needDays} more days`}</h4>`;
                 
@@ -1321,14 +1520,29 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${shortfallDetails.map(item => `
-                                    <tr style="border-bottom: 1px solid #2a2e4a;">
-                                        <td style="padding: 8px;">${item.date}</td>
-                                        <td style="padding: 8px;">${item.trades} ${currentLang === 'zh' ? '次' : ''}</td>
-                                        <td style="padding: 8px;">$${item.volume.toFixed(2)}</td>
-                                        <td style="padding: 8px; color: #ff6b6b;">${item.reasons.join(', ')}</td>
-                                    </tr>
-                                `).join('')}
+                                ${shortfallDetails.map(item => {
+                                    if (item.isQualified) {
+                                        // 已达标，显示绿色
+                                        return `
+                                            <tr style="border-bottom: 1px solid #2a2e4a;">
+                                                <td style="padding: 8px;">${item.date}</td>
+                                                <td style="padding: 8px;">${item.trades} ${currentLang === 'zh' ? '次' : ''}</td>
+                                                <td style="padding: 8px;">$${item.volume.toFixed(2)}</td>
+                                                <td style="padding: 8px; color: #4caf50;">✅ ${currentLang === 'zh' ? '已达标' : 'Qualified'}</td>
+                                            </tr>
+                                        `;
+                                    } else {
+                                        // 未达标，显示红色差额
+                                        return `
+                                            <tr style="border-bottom: 1px solid #2a2e4a;">
+                                                <td style="padding: 8px;">${item.date}</td>
+                                                <td style="padding: 8px;">${item.trades} ${currentLang === 'zh' ? '次' : ''}</td>
+                                                <td style="padding: 8px;">$${item.volume.toFixed(2)}</td>
+                                                <td style="padding: 8px; color: #ff6b6b;">${item.reasons.join(', ')}</td>
+                                            </tr>
+                                        `;
+                                    }
+                                }).join('')}
                             </tbody>
                         </table>
                     `;
@@ -1375,35 +1589,8 @@
 
             return `
                 <tr class="detail-row" id="detail-${rowNum}">
-                    <td colspan="9">
+                    <td colspan="11">>
                         <div class="detail-content">
-                            <!-- 交易笔数争议提示 -->
-                            <div style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 87, 34, 0.15) 100%); border: 2px solid #ff9800; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
-                                <div style="display: flex; align-items: flex-start; gap: 15px;">
-                                    <span style="font-size: 32px; flex-shrink: 0;">⚠️</span>
-                                    <div>
-                                        <h4 style="color: #ff9800; margin: 0 0 10px 0; font-size: 1.1em;">
-                                            ${currentLang === 'zh' ? '关于交易笔数的重要说明' : 'Important Note About Trade Count'}
-                                        </h4>
-                                        <div style="font-size: 0.95em; line-height: 1.6; color: #ddd;">
-                                            ${currentLang === 'zh' ? 
-                                                '<p style="margin: 0 0 10px 0;"><strong>有人说以下单笔数为准，有人说以链上tx记录为准，关于交易笔数有争议。</strong></p>' +
-                                                '<p style="margin: 0 0 10px 0;">本工具查询的是<strong>链上交易记录(tx)笔数</strong>，与官网"已关闭订单"可能不一致。</p>' +
-                                                '<p style="margin: 0 0 10px 0;">💡 <strong>建议：</strong>下单时多下几个单，多了没事，少了血亏。</p>' +
-                                                '<p style="margin: 0 0 10px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; font-size: 0.9em;">📝 <strong>开发者观点：</strong>从技术角度看，以tx记录为准更合理。如果下单100只成交50，这种部分成交的情况很难界定是否算有效订单。tx记录从技术实现上更友好、更明确。</p>' +
-                                                '<p style="margin: 0;">⚠️ 但为保险起见，<strong>建议在交易时记录自己提交的订单次数</strong>，多做几笔确保达标。</p>'
-                                                : 
-                                                '<p style="margin: 0 0 10px 0;"><strong>There is a dispute: some say "order count", others say "on-chain tx records".</strong></p>' +
-                                                '<p style="margin: 0 0 10px 0;">This tool queries <strong>on-chain transaction (tx) records</strong>, which may differ from "Closed Orders" on the official website.</p>' +
-                                                '<p style="margin: 0 0 10px 0;">💡 <strong>Tip:</strong> Place more orders when trading - better safe than sorry.</p>' +
-                                                '<p style="margin: 0 0 10px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; font-size: 0.9em;">📝 <strong>Developer\'s View:</strong> From a technical perspective, tx records are more reasonable. If you place an order for 100 but only 50 gets filled, it\'s hard to define if this counts as a valid order. Tx records are more implementation-friendly and clearer.</p>' +
-                                                '<p style="margin: 0;">⚠️ To be safe, <strong>record your order submissions when trading</strong> and place extra orders to ensure qualification.</p>'
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
                             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
                                 <div class="detail-section">
                                     ${statusMessage}
@@ -1420,6 +1607,24 @@
                                     <div class="important-notice">
                                         <span class="important-notice-icon">💡</span>
                                         <span class="important-notice-text">${currentLang === 'zh' ? '建议不要卡线,多做一点会更好!' : 'Tip: Don\'t cut it close, do a bit more for safety!'}</span>
+                                    </div>
+                                    
+                                    <!-- 关于交易笔数 - 精简版 -->
+                                    <div style="margin-top: 15px; padding: 12px; background: rgba(255, 152, 0, 0.1); border-left: 3px solid #ff9800; border-radius: 4px; font-size: 0.75em; line-height: 1.5;">
+                                        <div style="color: #ff9800; font-weight: 600; margin-bottom: 6px;">
+                                            ⚠️ ${currentLang === 'zh' ? '关于交易笔数的重要说明' : 'About Trade Count'}
+                                        </div>
+                                        <div style="color: #ccc;">
+                                            ${currentLang === 'zh' ? 
+                                                '有人说以下单笔数为准，有人说以链上tx记录为准，关于交易笔数有争议。<br>' +
+                                                '本工具查询的是<strong>链上交易记录(tx)笔数</strong>，与官网"已关闭订单"可能不一致。<br>' +
+                                                '<span style="color: #ff9800;">💡 建议：下单时多下几个单，多了没事，少了血亏。</span>'
+                                                : 
+                                                'Dispute: "order count" vs "on-chain tx records".<br>' +
+                                                'This tool uses <strong>on-chain tx records</strong>, may differ from official site.<br>' +
+                                                '<span style="color: #ff9800;">💡 Tip: Place more orders to be safe.</span>'
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             </div>
