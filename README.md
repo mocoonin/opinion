@@ -56,7 +56,7 @@
 
 #### 第1步：获取API Key
 
-1. 访问 [Opinion.trade API申请页面]([https://docs.opinion.trade/](https://docs.opinion.trade/developer-guide/opinion-open-api/overview))
+1. 访问 [Opinion.trade API申请页面](https://docs.opinion.trade/developer-guide/opinion-open-api/overview)
 2. 填写申请表单获取API Key
 3. API Key格式类似：`sk_xxxxxxxxxxxxxxxxxxxxxxxx`
 
@@ -323,7 +323,7 @@ If you don't remember your trade count, please login to check.
 
 #### Step 1: Get API Key
 
-1. Visit [Opinion.trade API Application Page]([https://docs.opinion.trade/](https://docs.opinion.trade/developer-guide/opinion-open-api/overview))
+1. Visit [Opinion.trade API Application Page](https://docs.opinion.trade/developer-guide/opinion-open-api/overview)
 2. Fill out the application form to get API Key
 3. API Key format: `sk_xxxxxxxxxxxxxxxxxxxxxxxx`
 
